@@ -1,0 +1,3 @@
+id,entityType,entityId,field,oldValue,newValue,changedBy,changedDate
+1,Project,1,status,Planning,In Progress,admin,2024-01-15T10:30:00
+2,Action,1,status,Open,Completed,john.doe,2024-11-15T14:20:00

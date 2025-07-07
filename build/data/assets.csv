@@ -1,0 +1,15 @@
+id,name,type,region,size,installDate,expectedLifespan,conditionScore,lastInspection
+FRT-000001,Central Park Forest,FRT,Downtown,12.5,1995-05-15,100,8,2024-03-15
+FRT-000002,Riverside Forest Reserve,FRT,North Side,25.8,1987-09-20,100,7,2024-02-28
+FRT-000003,West End Forest Park,FRT,West Side,18.2,1992-08-10,100,9,2024-03-20
+FRT-000004,South Hills Forest,FRT,South Side,31.5,1985-11-05,100,6,2024-02-12
+WTD-000001,Miller Creek Wetland,WTD,East Side,8500,2010-04-12,50,9,2024-01-20
+WTD-000002,Industrial Park Wetland,WTD,West Side,15200,2018-07-08,50,8,2024-03-10
+WTD-000003,North Valley Wetland,WTD,North Side,12300,2015-06-15,50,7,2024-02-25
+UBT-000001,Main Street Tree Line,UBT,Downtown,45,2015-03-22,80,7,2024-02-15
+UBT-000002,Park Avenue Trees,UBT,North Side,38,2012-05-18,80,6,2024-01-30
+UBT-000003,Elm Street Trees,UBT,East Side,52,2017-04-10,80,8,2024-03-08
+UBT-000004,Oak Boulevard Trees,UBT,West Side,67,2014-09-12,80,7,2024-02-18
+GRS-000001,Municipal Sports Complex,GRS,South Side,12000,2019-06-10,15,8,2024-03-05
+GRS-000002,Riverside Park Lawn,GRS,East Side,8500,2020-04-25,15,9,2024-02-20
+GRS-000003,Community Center Grounds,GRS,Downtown,6800,2021-03-18,15,9,2024-03-12

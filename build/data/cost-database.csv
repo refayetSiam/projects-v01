@@ -1,0 +1,18 @@
+assetClass,assetType,actionName,cost,unit,description,lifecycle
+Trees,Urban Street Trees,Pruning,80,Each,Regular pruning maintenance,2-3 years
+Trees,Urban Street Trees,Watering,15,Each,Irrigation services,Annual
+Trees,Urban Street Trees,Mulching,25,Each,Mulch application,Annual
+Trees,Urban Street Trees,Health Assessment,75,Each,Tree health evaluation,3-5 years
+Trees,Urban Street Trees,Replacement,500,Each,Tree replacement,50-80 years
+Trees,Forest Trees,Health Assessment,400,Hectares,Comprehensive forest health evaluation,5-10 years
+Trees,Forest Trees,Reforestation,3000,Hectares,Tree planting and establishment,100 years
+Trees,Forest Trees,Maintenance,800,Hectares,General forest maintenance,Annual
+Trees,Forest Trees,Inspection,200,Hectares,Regular forest inspection,Quarterly
+Wetlands,Stormwater Management,Inspection,0.5,SM,Regular maintenance inspection,Monthly
+Wetlands,Stormwater Management,Sediment Removal,8,SM,Sediment cleaning and removal,5-10 years
+Wetlands,Stormwater Management,Vegetation Management,3,SM,Aquatic vegetation control,2-3 years
+Wetlands,Stormwater Management,Water Quality Testing,1.5,SM,Water quality assessment,Quarterly
+Grass,Turf Management,Mowing,2,SM,Regular grass cutting,Bi-weekly
+Grass,Turf Management,Fertilizing,4,SM,Fertilizer application,3-4 times/year
+Grass,Turf Management,Aeration,3,SM,Soil aeration service,Annual
+Grass,Turf Management,Overseeding,15,SM,Grass seed application,2-3 years

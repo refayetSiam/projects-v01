@@ -1,0 +1,5 @@
+code,name,unit,prefix,assetClass
+FRT,Forest,Hectares,FRT,Trees
+WTD,Wetland,SM,WTD,Wetlands
+UBT,Urban Trees,Each,UBT,Trees
+GRS,Grass,SM,GRS,Grass

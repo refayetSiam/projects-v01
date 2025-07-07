@@ -1,0 +1,6 @@
+id,projectId,name,assetId,actionPath,status,nextDue,overrideDate,recurrence,recurrenceValue,recurrenceUnit,assetPercentage,modeledCost,overrideCost,cost,completedDate,createdBy,createdDate
+1,1,Tree Pruning - UBT-000001 - Mar 2025,UBT-000001,Trees > Urban Street Trees > Pruning,Completed,2025-03-15,,true,2,years,75,2700,,2700,2024-11-15,john.doe,2024-01-15
+2,1,Forest Health Assessment - FRT-000001,FRT-000001,Trees > Forest Trees > Health Assessment,In Progress,2025-02-15,2025-03-01,false,,,100,5000,6500,6500,,jane.smith,2024-02-01
+3,1,Wetland Maintenance - WTD-000001 - Apr 2025,WTD-000001,Wetlands > Stormwater Management > Inspection,Open,2025-04-10,,true,1,years,60,2550,,2550,,mike.wilson,2024-01-20
+4,2,Grass Overseeding - GRS-000002,GRS-000002,Grass > Turf Management > Overseeding,Open,2025-05-15,,false,,,25,31875,35000,35000,,sarah.brown,2024-02-20
+5,2,Wetland Inspection - WTD-000002,WTD-000002,Wetlands > Stormwater Management > Inspection,Open,2025-06-01,,false,,,100,7600,,7600,,david.jones,2024-03-01
