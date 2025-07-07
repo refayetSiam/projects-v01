@@ -1,18 +1,86 @@
 assetClass,assetType,actionName,cost,unit,description,lifecycle
-Trees,Urban Street Trees,Pruning,80,Each,Regular pruning maintenance,2-3 years
-Trees,Urban Street Trees,Watering,15,Each,Irrigation services,Annual
-Trees,Urban Street Trees,Mulching,25,Each,Mulch application,Annual
-Trees,Urban Street Trees,Health Assessment,75,Each,Tree health evaluation,3-5 years
-Trees,Urban Street Trees,Replacement,500,Each,Tree replacement,50-80 years
-Trees,Forest Trees,Health Assessment,400,Hectares,Comprehensive forest health evaluation,5-10 years
-Trees,Forest Trees,Reforestation,3000,Hectares,Tree planting and establishment,100 years
-Trees,Forest Trees,Maintenance,800,Hectares,General forest maintenance,Annual
-Trees,Forest Trees,Inspection,200,Hectares,Regular forest inspection,Quarterly
-Wetlands,Stormwater Management,Inspection,0.5,SM,Regular maintenance inspection,Monthly
-Wetlands,Stormwater Management,Sediment Removal,8,SM,Sediment cleaning and removal,5-10 years
-Wetlands,Stormwater Management,Vegetation Management,3,SM,Aquatic vegetation control,2-3 years
-Wetlands,Stormwater Management,Water Quality Testing,1.5,SM,Water quality assessment,Quarterly
-Grass,Turf Management,Mowing,2,SM,Regular grass cutting,Bi-weekly
-Grass,Turf Management,Fertilizing,4,SM,Fertilizer application,3-4 times/year
-Grass,Turf Management,Aeration,3,SM,Soil aeration service,Annual
-Grass,Turf Management,Overseeding,15,SM,Grass seed application,2-3 years
+Green Infrastructure,Bioswales,Maintenance,14.1,SM,Maintenance cost for bioswales per square meter.,1
+Green Infrastructure,Drainage Swales,Replacement 1m wide,55.98,SM,Total replacement cost for bioswales 1 meter wide.,20
+Green Infrastructure,Engineered Ponds,Replacement 1m wide,55.98,SM,Total replacement cost for bioswales 1 meter wide.,20
+Trees,Forest,Reforestation DRC,0.3,SM,The Reforestation cost includes site preparation seedling production planting labor and post-planting maintenance to ensure tree survival and ecosystem restoration.,25
+Grass,Grass,Reforestation DRC,0.3,SM,Ontario Soil and Crop Improvement Association,25
+Green Infrastructure,Green Roofs (Blue-Green),Replacement,323,SM,Replacement cost for blue-green roofs per square meter.,25
+Green Infrastructure,Green Roofs (Blue-Green),Replacement Alternative,11,SM,Replacement cost for porous asphalt pavement per square meter.,25
+Green Infrastructure,Green Roofs (Blue-Green),Maintenance density dependent,8.1,SM,Maintenance cost for blue-green roofs per square meter density dependent.,1
+Green Infrastructure,Green Roofs (Blue-Green),Inspection,500,Each,Inspection cost for blue-green roofs.,1
+Green Infrastructure,Green Roofs (Extensive),Replacement,161,SM,Replacement cost for extensive green roofs per square meter.,25
+Green Infrastructure,Green Roofs (Extensive),Maintenance density dependent,8.1,SM,Maintenance cost for extensive green roofs per square meter density dependent.,1
+Green Infrastructure,Green Roofs (Extensive),Inspection,500,Each,Inspection cost for extensive green roofs.,1
+Green Infrastructure,Green Walls,Replacement,700,SM,Replacement cost for green walls per square meter.,20
+Green Infrastructure,Green Walls,Maintenance,7200,SM,Maintenance cost for green walls per square meter.,1
+Flooded Vegetation,Inland Wetland,Excavation,16.1,SM,Clearing and grading the land for Wetland creation,10
+Flooded Vegetation,Inland Wetland,Soil Import/Amendment,21.5,SM,Bringing in new soil or amending existing soil,10
+Flooded Vegetation,Inland Wetland,Grading,13.5,SM,Smoothing and shaping the land to create proper slopes and water retention areas,10
+Flooded Vegetation,Inland Wetland,Water Source Setup,32.3,SM,Installation of water control structures or irrigation,10
+Flooded Vegetation,Inland Wetland,Sodding (Grass),9.7,SM,Planting Grass or ground cover in Wetland areas,10
+Flooded Vegetation,Inland Wetland,Native Planting,43.1,SM,Planting Wetland-specific vegetation like reeds cattails etc.,25
+Flooded Vegetation,Inland Wetland,Erosion Control,18.8,SM,Installing erosion control measures like silt fencing,10
+Flooded Vegetation,Inland Wetland,Sediment Control,16.1,SM,Establishing barriers to control sediment movement,10
+Flooded Vegetation,Inland Wetland,Mulching,5.4,SM,Applying mulch around newly planted vegetation to retain moisture,10
+Flooded Vegetation,Inland Wetland,Fencing,10.8,SM,Temporary fencing for protecting the area during establishment,10
+Flooded Vegetation,Inland Wetland,Invasive Species Management,9.1,SM,Removing invasive species and controlling their spread,10
+Flooded Vegetation,Inland Wetland,Advanced water filtration plant,145.95,SM,Engineered replacement cost for design construction and installation of rapid sand filtration systems including essential equipment and supporting infrastructure.,10
+Grass,Parks and Open Spaces,Excavation and grading,0.9,SM,Clearing and grading the land for Grass restoration,10
+Grass,Parks and Open Spaces,Soil Preparation,4.05,SM,Preparing and amending soil for native Grass growth,10
+Grass,Parks and Open Spaces,Seeding (Native Grasses),2.7,SM,Seeding the area with native Grasses,10
+Grass,Parks and Open Spaces,Mulching,1.2,SM,Applying mulch to retain moisture and protect new plants,10
+Grass,Parks and Open Spaces,Invasive Species Management,3.8,SM,Managing invasive species to protect native Grasss,10
+Grass,Parks and Open Spaces,Fencing,5.4,SM,Installing fencing to protect the area during establishment,10
+Green Infrastructure,Permeable Pavement (Pervious Concrete),Replacement,54,SM,Replacement cost for pervious concrete pavement per square meter.,20
+Green Infrastructure,Permeable Pavement (Pervious Concrete),Maintenance,0.2,SM,Maintenance cost for pervious concrete per square meter.,1
+Green Infrastructure,Permeable Pavement (Porous Asphalt),Maintenance,0.2,SM,Maintenance cost for porous asphalt per square meter.,1
+Green Infrastructure,Rain Gardens,Replacement,431,SM,Total replacement cost for raingardens per sm,20
+Green Infrastructure,Rain Gardens,Maintenance,43.1,SM,Maintenance cost for rain gardens per square meter.,1
+Green Infrastructure,Rain Gardens,Soil tests,500,Each,Soil test cost for rain gardens.,10
+Green Infrastructure,Rain Gardens,Percolation test,1500,Each,Percolation test cost for rain gardens.,10
+Green Infrastructure,Rain Gardens,Bioremediation,1,SM,Bioremediation cost for rain gardens per square meter.,10
+Green Infrastructure,Rain Gardens,Installation,430,SM,Installation cost for rain gardens per square meter.,25
+Green Infrastructure,Retention Basin,Replacement 1m wide,55.98,SM,Total replacement cost for bioswales 1 meter wide.,20
+Flooded Vegetation,Riparian,Benefits valuation,6.51,SM,Clearing and grading the land for Wetland creation,10
+Flooded Vegetation,Riparian,Excavation,16.1,SM,Clearing and grading the land for Wetland creation,10
+Flooded Vegetation,Riparian,Soil Import/Amendment,21.5,SM,Bringing in new soil or amending existing soil,10
+Flooded Vegetation,Riparian,Grading,13.5,SM,Smoothing and shaping the land to create proper slopes and water retention areas,10
+Flooded Vegetation,Riparian,Water Source Setup,32.3,SM,Installation of water control structures or irrigation,10
+Flooded Vegetation,Riparian,Sodding (Grass),9.7,SM,Planting Grass or ground cover in Wetland areas,10
+Flooded Vegetation,Riparian,Native Planting,43.1,SM,Planting Wetland-specific vegetation like reeds cattails etc.,25
+Flooded Vegetation,Riparian,Erosion Control,18.8,SM,Installing erosion control measures like silt fencing,10
+Flooded Vegetation,Riparian,Sediment Control,16.1,SM,Establishing barriers to control sediment movement,10
+Flooded Vegetation,Riparian,Mulching,5.4,SM,Applying mulch around newly planted vegetation to retain moisture,10
+Flooded Vegetation,Riparian,Fencing,10.8,SM,Temporary fencing for protecting the area during establishment,10
+Flooded Vegetation,Riparian,Invasive Species Management,9.1,SM,Removing invasive species and controlling their spread,10
+Shrubs,Shrubs,Reforestation DRC,0.24,SM,Ontario Soil and Crop Improvement Association,25
+Grass,Turf,Excavation,10.8,SM,Clearing and grading the land for Grass restoration,10
+Grass,Turf,Soil Preparation,16.1,SM,Preparing and amending soil for native Grass growth,10
+Grass,Turf,Grading,12.9,SM,Smoothing and shaping the land to create appropriate topography,10
+Grass,Turf,Seeding (Native Grasses),2.7,SM,Seeding the area with native Grasses,10
+Grass,Turf,Irrigation Setup,26.9,SM,Installing irrigation systems to ensure Grass establishment,10
+Grass,Turf,Mulching,3.2,SM,Applying mulch to retain moisture and protect new plants,10
+Grass,Turf,Erosion Control,18.8,SM,Installing erosion control measures like silt fencing,10
+Grass,Turf,Invasive Species Management,8.6,SM,Managing invasive species to protect native Grasss,10
+Grass,Turf,Fencing,10.8,SM,Installing fencing to protect the area during establishment,10
+Trees,Urban Street Trees,Planned Pruning,50,Each,Single tree pruning,10
+Trees,Urban Street Trees,Watering,30,Each,Single tree bag watering,1
+Trees,Urban Street Trees,Young Tree Training,30,Each,Single tree mulch,1
+Trees,Urban Street Trees,Removal,500,Each,Tree removal (includes stomp grinding),1
+Trees,Urban Street Trees,Maintenance,6.8,Each,Maintenance cost per tree.,1
+Trees,Urban Street Trees,Transportation,30,Each,Cost to transport the tree to the planting site,10
+Trees,Urban Street Trees,Site Preparation,30,Each,Preparing the ground for planting (grading soil amendments etc.),10
+Trees,Urban Street Trees,Planting,99,Each,Labor for digging planting backfilling and staking the tree,25
+Trees,Urban Street Trees,Staking & Mulching,15,Each,Support stakes and mulch for water retention and protection,10
+Trees,Urban Street Trees,Watering & Initial Care,30,Each,Regular watering and maintenance for tree establishment,1
+Trees,Urban Street Trees,Irrigation System (if needed),114,Each,Installation of a dedicated watering system,10
+Trees,Urban Street Trees,Tree Felling & Removal,99,Each,Cost to safely cut down and remove the tree,1
+Trees,Urban Street Trees,Stump Removal/Grinding,30,Each,Cost to grind or excavate the stump,1
+Trees,Urban Street Trees,Debris Removal & Cleanup,18,Each,Removing and disposing of branches logs and other debris,1
+Trees,Urban Street Trees,Other Labour,400,Each,Example Evergreen tree average cost,10
+Trees,Urban Street Trees,Deciduous Tree Each,300,Each,Example Deciduous tree average cost,10
+Flooded Vegetation,Wetland,Conventional water filtration plant,10.15,SM,Engineered replacement cost for design construction and installation of rapid sand filtration systems including essential equipment and supporting infrastructure.,50
+Flooded Vegetation,Wetland - Restoration,Irrigation Setup,26.9,SM,Installing temporary or permanent irrigation for vegetation,10
+Flooded Vegetation,Wetland - Restoration,Wetland Monitoring,1.6,SM/yr,Ongoing environmental monitoring of the Wetland post-construction,1
+Flooded Vegetation,Wetland - Restoration,Permitting and Compliance,3000,Each,Fees associated with obtaining necessary Wetland restoration permits,1
+Flooded Vegetation,Wetland - Restoration,Sediment Control,8.5,SM,"One-time sediment removal cost for drainage swales. Includes mobilization, sediment excavation, debris hauling, and minor restoration. Sediment removal helps maintain swale capacity and function by preventing blockages and ensuring effective stormwater conveyance.",5

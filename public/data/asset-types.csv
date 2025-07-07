@@ -1,5 +1,12 @@
 code,name,unit,prefix,assetClass
-FRT,Forest,Hectares,FRT,Trees
-WTD,Wetland,SM,WTD,Wetlands
-UBT,Urban Trees,Each,UBT,Trees
+FRT,Forest,SM,FRT,Trees
+UBT,Urban Street Trees,Each,UBT,Trees
+WTR,Water,SM,WTR,Water
+WTD,Wetland,SM,WTD,Flooded Vegetation
+RIP,Riparian,SM,RIP,Flooded Vegetation
 GRS,Grass,SM,GRS,Grass
+TRF,Turf,SM,TRF,Grass
+POS,Parks And Open Spaces,SM,POS,Grass
+BLT,Built,SM,BLT,Built
+DSW,Drainage Swales,SM,DSW,Green Infrastructure
+SHR,Shrubs,SM,SHR,Shrubs

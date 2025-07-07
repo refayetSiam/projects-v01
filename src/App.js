@@ -214,10 +214,18 @@ const ProjectsActionsModule = () => {
     }
   };
 
-  const generateActionName = (actionType, assetId, nextDue, overrideDate, recurrence) => {
+  const generateActionName = (actionType, assetId, nextDue, overrideDate, recurrence, regionOverride = null) => {
     if (!actionType || !assetId) return '';
     
-    let name = `${actionType} - ${assetId}`;
+    // Find the asset to get the region, or use override for bulk actions
+    let regionName = regionOverride;
+    if (!regionName && assetId !== 'BULK') {
+      const asset = assets.find(a => a.id === assetId);
+      regionName = asset ? asset.region : '';
+    }
+    
+    // Format: "Region Name - Action - Asset"
+    let name = regionName ? `${regionName} - ${actionType} - ${assetId}` : `${actionType} - ${assetId}`;
     
     if (recurrence && (overrideDate || nextDue)) {
       const date = new Date(overrideDate || nextDue);
@@ -248,12 +256,19 @@ const ProjectsActionsModule = () => {
 
   const filteredAssets = (searchTerm = assetSearchTerm) => {
     if (!searchTerm) return assets;
-    return assets.filter(asset =>
-      asset.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assetTypes[asset.type].name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.region.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return assets.filter(asset => {
+      // Check if asset type exists to prevent errors
+      const assetType = assetTypes[asset.type];
+      if (!assetType) {
+        console.warn(`Asset type '${asset.type}' not found for asset '${asset.id}'`);
+        return false;
+      }
+      
+      return asset.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        assetType.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.region.toLowerCase().includes(searchTerm.toLowerCase());
+    });
   };
 
   const downloadActionsCSV = () => {
@@ -479,7 +494,25 @@ const ProjectsActionsModule = () => {
     const updatedProject = {
       ...selectedProject,
       actions: editingAction 
-        ? selectedProject.actions.map(a => a.id === editingAction.id ? baseAction : a)
+        ? [
+            ...selectedProject.actions.filter(a => {
+              // Remove the original action being edited
+              if (a.id === editingAction.id) return false;
+              
+              // If the action was previously recurring, also remove future recurring actions
+              // (Actions with the same asset and action path but different dates)
+              if (editingAction.recurrence && !actionForm.recurrence) {
+                const isSameActionSeries = a.assetId === editingAction.assetId && 
+                                         a.actionPath === editingAction.actionPath &&
+                                         a.id !== editingAction.id &&
+                                         new Date(a.nextDue) > new Date(editingAction.nextDue);
+                return !isSameActionSeries;
+              }
+              
+              return true;
+            }),
+            ...allActions // Add the updated action and any new recurring actions
+          ]
         : [...selectedProject.actions, ...allActions],
       lastModified: new Date().toISOString()
     };
@@ -625,9 +658,9 @@ const ProjectsActionsModule = () => {
           </button>
         </div>
 
-        <div className="flex-1 flex">
+        <div className="flex-1 flex min-h-0">
           {/* Tree Explorer */}
-          <div className="w-1/2 border-r overflow-y-auto p-6">
+          <div className="w-1/2 border-r overflow-y-auto p-6 max-h-full">
             <div className="space-y-1">
               {Object.entries(costDatabase).map(([assetClass, assetTypesObj]) => (
                 <div key={assetClass}>
@@ -641,7 +674,7 @@ const ProjectsActionsModule = () => {
                       <ChevronRight className="w-4 h-4 text-gray-500 mr-1" />
                     )}
                     <FolderOpen className="w-4 h-4 text-blue-500 mr-2" />
-                    <span className="text-sm font-medium text-gray-900">{assetClass}</span>
+                    <span className="text-sm font-medium text-gray-900 break-words">{assetClass}</span>
                   </div>
 
                   {expandedNodes.has(assetClass) && (
@@ -658,7 +691,7 @@ const ProjectsActionsModule = () => {
                               <ChevronRight className="w-4 h-4 text-gray-500 mr-1" />
                             )}
                             <Folder className="w-4 h-4 text-gray-500 mr-2" />
-                            <span className="text-sm text-gray-700">{assetType}</span>
+                            <span className="text-sm text-gray-700 break-words">{assetType}</span>
                           </div>
 
                           {expandedNodes.has(`${assetClass}/${assetType}`) && (
@@ -672,7 +705,7 @@ const ProjectsActionsModule = () => {
                                   }`}
                                 >
                                   <File className="w-4 h-4 text-gray-400 mr-2 ml-1" />
-                                  <span className="text-sm text-gray-600">{actionName}</span>
+                                  <span className="text-sm text-gray-600 break-words">{actionName}</span>
                                 </div>
                               ))}
                             </div>
@@ -1286,11 +1319,15 @@ const ProjectsActionsModule = () => {
                   size={Math.min(filteredAssetsForAction.length + 1, 5)}
                 >
                   <option value="">Select an asset...</option>
-                  {filteredAssetsForAction.map(asset => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.id} - {asset.name} ({assetTypes[asset.type].name})
-                    </option>
-                  ))}
+                  {filteredAssetsForAction.map(asset => {
+                    const assetType = assetTypes[asset.type];
+                    const assetTypeName = assetType ? assetType.name : asset.type;
+                    return (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.id} - {asset.name} ({assetTypeName})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
@@ -1558,24 +1595,34 @@ const ProjectsActionsModule = () => {
   };
 
   const renderBulkActionModal = () => {
-    // Get unique asset types grouped by asset class
-    const assetTypesByClass = {};
-    Object.entries(assetTypes).forEach(([code, config]) => {
-      if (!assetTypesByClass[config.assetClass]) {
-        assetTypesByClass[config.assetClass] = [];
-      }
-      assetTypesByClass[config.assetClass].push(config.name);
-    });
+    // Get asset types that exist in the selected region
+    const getAssetTypesForRegion = (region) => {
+      if (!region) return [];
+      
+      // Find assets in the selected region
+      const assetsInRegion = assets.filter(asset => asset.region === region);
+      
+      // Get unique asset types from those assets
+      const assetTypesInRegion = Array.from(new Set(
+        assetsInRegion.map(asset => {
+          const assetConfig = assetTypes[asset.type];
+          return assetConfig ? assetConfig.name : null;
+        }).filter(Boolean)
+      ));
+      
+      return assetTypesInRegion.sort();
+    };
 
-    // Get unique asset types for dropdown
-    const uniqueAssetTypes = Array.from(new Set(Object.values(assetTypes).map(type => type.name)));
+    // Get asset types for dropdown based on selected region
+    const availableAssetTypes = getAssetTypesForRegion(bulkActionForm.region);
 
     const previewName = generateActionName(
       bulkActionForm.actionPath.split(' > ').pop(),
       'BULK',
       bulkActionForm.nextDue,
       bulkActionForm.overrideDate,
-      bulkActionForm.recurrence
+      bulkActionForm.recurrence,
+      bulkActionForm.region
     );
 
     // Count matching assets for preview
@@ -1595,7 +1642,11 @@ const ProjectsActionsModule = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Region *</label>
               <select
                 value={bulkActionForm.region}
-                onChange={(e) => setBulkActionForm(prev => ({ ...prev, region: e.target.value }))}
+                onChange={(e) => setBulkActionForm(prev => ({ 
+                  ...prev, 
+                  region: e.target.value,
+                  assetType: '' // Clear asset type when region changes
+                }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select region...</option>
@@ -1611,9 +1662,12 @@ const ProjectsActionsModule = () => {
                 value={bulkActionForm.assetType}
                 onChange={(e) => setBulkActionForm(prev => ({ ...prev, assetType: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={!bulkActionForm.region}
               >
-                <option value="">Select asset type...</option>
-                {uniqueAssetTypes.map(assetType => (
+                <option value="">
+                  {bulkActionForm.region ? 'Select asset type...' : 'Select region first...'}
+                </option>
+                {availableAssetTypes.map(assetType => (
                   <option key={assetType} value={assetType}>{assetType}</option>
                 ))}
               </select>
