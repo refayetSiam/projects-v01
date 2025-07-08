@@ -84,3 +84,36 @@ Flooded Vegetation,Wetland - Restoration,Irrigation Setup,26.9,SM,Installing tem
 Flooded Vegetation,Wetland - Restoration,Wetland Monitoring,1.6,SM/yr,Ongoing environmental monitoring of the Wetland post-construction,1
 Flooded Vegetation,Wetland - Restoration,Permitting and Compliance,3000,Each,Fees associated with obtaining necessary Wetland restoration permits,1
 Flooded Vegetation,Wetland - Restoration,Sediment Control,8.5,SM,"One-time sediment removal cost for drainage swales. Includes mobilization, sediment excavation, debris hauling, and minor restoration. Sediment removal helps maintain swale capacity and function by preventing blockages and ensuring effective stormwater conveyance.",5
+Built,Park Bench,Replacement,800,Each,Complete replacement of park bench including removal of old bench and installation of new one,15
+Built,Park Bench,Maintenance,120,Each,Annual maintenance including cleaning painting and minor repairs,1
+Built,Park Bench,Inspection,25,Each,Annual inspection for safety and condition assessment,1
+Built,Playground Equipment,Replacement,15000,Each,Complete replacement of playground equipment including safety surfacing,20
+Built,Playground Equipment,Major Maintenance,2500,Each,Major maintenance including equipment refurbishment and safety updates,5
+Built,Playground Equipment,Minor Maintenance,300,Each,Minor maintenance including cleaning lubrication and small repairs,1
+Built,Playground Equipment,Safety Inspection,150,Each,Professional safety inspection and certification,1
+Built,Picnic Table,Replacement,600,Each,Complete replacement of picnic table including removal and installation,12
+Built,Picnic Table,Maintenance,80,Each,Annual maintenance including cleaning staining and repairs,1
+Built,Picnic Table,Inspection,20,Each,Annual inspection for safety and condition,1
+Built,Garbage Bin,Replacement,250,Each,Complete replacement of garbage bin including concrete pad if needed,10
+Built,Garbage Bin,Maintenance,50,Each,Annual maintenance including cleaning and minor repairs,1
+Built,Fence Section,Replacement,45,Each,Replacement cost per linear meter of fencing,25
+Built,Fence Section,Maintenance,8,Each,Annual maintenance cost per linear meter including painting and repairs,1
+Built,Fence Section,Inspection,2,Each,Annual inspection cost per linear meter,1
+Built,Gazebo,Replacement,12000,Each,Complete replacement of gazebo structure including foundation,30
+Built,Gazebo,Major Maintenance,1800,Each,Major maintenance including roof repairs and structural updates,10
+Built,Gazebo,Minor Maintenance,200,Each,Minor maintenance including cleaning and painting,1
+Built,Gazebo,Inspection,100,Each,Annual structural inspection,1
+Built,Walking Path,Replacement,85,Each,Complete replacement cost per linear meter including base preparation,15
+Built,Walking Path,Resurfacing,35,Each,Resurfacing cost per linear meter,8
+Built,Walking Path,Maintenance,5,Each,Annual maintenance cost per linear meter including crack sealing,1
+Built,Walking Path,Inspection,1,Each,Annual inspection cost per linear meter,1
+Built,Retaining Wall,Replacement,180,Each,Complete replacement cost per linear meter including excavation,50
+Built,Retaining Wall,Major Maintenance,45,Each,Major maintenance including structural repairs,15
+Built,Retaining Wall,Minor Maintenance,12,Each,Minor maintenance including cleaning and pointing,1
+Built,Retaining Wall,Inspection,5,Each,Annual structural inspection per linear meter,1
+Built,Signage Post,Replacement,150,Each,Complete replacement of signage post including sign,8
+Built,Signage Post,Maintenance,30,Each,Annual maintenance including cleaning and minor repairs,1
+Built,Signage Post,Inspection,10,Each,Annual inspection for safety and visibility,1
+Built,Bike Rack,Replacement,350,Each,Complete replacement of bike rack including installation,12
+Built,Bike Rack,Maintenance,40,Each,Annual maintenance including cleaning and repairs,1
+Built,Bike Rack,Inspection,15,Each,Annual inspection for safety and functionality,1

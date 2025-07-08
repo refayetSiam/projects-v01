@@ -10,6 +10,9 @@ const ProjectsActionsModule = () => {
   const [assets, setAssets] = useState([]);
   const [assetTypes, setAssetTypes] = useState({});
   const [costDatabase, setCostDatabase] = useState({});
+  const [customActions, setCustomActions] = useState([]);
+  const [showCustomActionForm, setShowCustomActionForm] = useState(false);
+  const [editingCustomAction, setEditingCustomAction] = useState(null);
   const [teams, setTeams] = useState([]);
   const [regions, setRegions] = useState([]);
   const [archives, setArchives] = useState({ projects: [], actions: [] });
@@ -47,6 +50,16 @@ const ProjectsActionsModule = () => {
 
   // Action preview state
   const [previewAction, setPreviewAction] = useState(null);
+  
+  // Custom action form state
+  const [customActionForm, setCustomActionForm] = useState({
+    name: '',
+    description: '',
+    cost: '',
+    unit: 'Each',
+    lifecycle: '1',
+    category: 'Custom Actions'
+  });
 
   // Load data on component mount
   useEffect(() => {
@@ -58,10 +71,46 @@ const ProjectsActionsModule = () => {
         setAssetTypes(data.assetTypes);
         setCostDatabase(data.costDatabase);
         setAssets(data.assets);
-        setProjects(data.projects);
+        
+        // Debug: Log first asset to check data structure
+        if (data.assets.length > 0) {
+          console.log('Sample asset data:', data.assets[0]);
+        }
+        
+        // Add the special Renewals project if it doesn't exist
+        const renewalsProject = {
+          id: 'RENEWALS-PROJECT',
+          projectId: 'RENEWALS-2024',
+          name: 'Asset Renewals',
+          description: 'Automatically generated lifecycle-based renewal actions',
+          status: 'Planning',
+          startDate: '',
+          endDate: '',
+          team: 'System Generated',
+          region: 'All Regions',
+          completion: 0,
+          actions: [],
+          createdBy: 'system',
+          createdDate: new Date().toISOString(),
+          lastModified: new Date().toISOString(),
+          isRenewalsProject: true
+        };
+        
+        const projectsWithRenewals = data.projects.some(p => p.id === 'RENEWALS-PROJECT') 
+          ? data.projects 
+          : [renewalsProject, ...data.projects];
+        
+        setProjects(projectsWithRenewals);
         setAuditTrail(data.auditTrail);
         setTeams(data.teams);
         setRegions(data.regions);
+        
+        // Load custom actions from localStorage
+        const savedCustomActions = localStorage.getItem('customActions');
+        if (savedCustomActions) {
+          setCustomActions(JSON.parse(savedCustomActions));
+        }
+        
         setError(null);
       } catch (err) {
         setError('Failed to load data. Please check if the CSV files are accessible.');
@@ -86,7 +135,16 @@ const ProjectsActionsModule = () => {
     overrideDate: '',
     assetPercentage: 100,
     modeledCost: 0,
-    overrideCost: ''
+    overrideCost: '',
+    adjustmentFactor: '',
+    isCustomAction: false,
+    customActionName: '',
+    customActionCost: '',
+    assetSize: '',
+    unitOfMeasure: '',
+    plannedAssetName: '',
+    directReplacementCost: '',
+    serviceValue: ''
   });
 
   // Bulk action modal state
@@ -101,7 +159,11 @@ const ProjectsActionsModule = () => {
     nextDue: '',
     overrideDate: '',
     assetPercentage: 100,
-    overrideCost: ''
+    overrideCost: '',
+    adjustmentFactor: '',
+    isCustomAction: false,
+    customActionName: '',
+    customActionCost: ''
   });
 
   // Project modal state
@@ -112,7 +174,11 @@ const ProjectsActionsModule = () => {
     startDate: '',
     endDate: '',
     team: '',
-    region: ''
+    region: '',
+    fundingStatus: 'Unfunded',
+    projectType: 'New Asset',
+    justification: '',
+    budgetType: 'Single Year'
   });
 
   // Generate project ID
@@ -160,13 +226,61 @@ const ProjectsActionsModule = () => {
     return totalCost > 0 ? Math.round((completedCost / totalCost) * 100) : 0;
   };
 
-  // Update project completions
+  // Calculate total Direct Replacement Cost for a project
+  const calculateProjectDirectReplacementCost = (project) => {
+    const uniqueAssets = new Set();
+    let totalDirectReplacementCost = 0;
+    
+    project.actions.forEach(action => {
+      if (action.assetId && !uniqueAssets.has(action.assetId)) {
+        uniqueAssets.add(action.assetId);
+        const asset = assets.find(a => a.id === action.assetId);
+        if (asset && asset['Direct Replacement Cost']) {
+          // Remove currency formatting and convert to number
+          const cost = parseFloat(asset['Direct Replacement Cost'].replace(/[$,\s]/g, ''));
+          if (!isNaN(cost)) {
+            totalDirectReplacementCost += cost;
+          }
+        }
+      }
+    });
+    
+    return totalDirectReplacementCost;
+  };
+
+  // Calculate total Service Value for a project
+  const calculateProjectServiceValue = (project) => {
+    const uniqueAssets = new Set();
+    let totalServiceValue = 0;
+    
+    project.actions.forEach(action => {
+      if (action.assetId && !uniqueAssets.has(action.assetId)) {
+        uniqueAssets.add(action.assetId);
+        const asset = assets.find(a => a.id === action.assetId);
+        if (asset && asset['Service Value']) {
+          // Remove currency formatting and convert to number
+          const value = parseFloat(asset['Service Value'].replace(/[$,\s]/g, ''));
+          if (!isNaN(value)) {
+            totalServiceValue += value;
+          }
+        }
+      }
+    });
+    
+    return totalServiceValue;
+  };
+
+  // Update project completions and asset values
   useEffect(() => {
-    setProjects(prev => prev.map(project => ({
-      ...project,
-      completion: calculateProjectCompletion(project)
-    })));
-  }, []);
+    if (assets.length > 0) {
+      setProjects(prev => prev.map(project => ({
+        ...project,
+        completion: calculateProjectCompletion(project),
+        totalDirectReplacementCost: calculateProjectDirectReplacementCost(project),
+        totalServiceValue: calculateProjectServiceValue(project)
+      })));
+    }
+  }, [assets]);
 
   const addAuditEntry = (entityType, entityId, field, oldValue, newValue, changedBy = 'current_user') => {
     const newEntry = {
@@ -182,11 +296,33 @@ const ProjectsActionsModule = () => {
     setAuditTrail(prev => [newEntry, ...prev]);
   };
 
-  const calculateModeledCost = (assetId, actionDetails, percentage) => {
-    const asset = assets.find(a => a.id === assetId);
-    if (!asset || !actionDetails || !percentage) return 0;
+  const calculateModeledCost = (assetId, actionDetails, percentage, adjustmentFactor = '', assetSize = '', customCost = '') => {
+    // If custom cost is provided, use it
+    if (customCost && !isNaN(parseFloat(customCost))) {
+      let cost = parseFloat(customCost);
+      if (adjustmentFactor && !isNaN(parseFloat(adjustmentFactor))) {
+        cost = cost * parseFloat(adjustmentFactor);
+      }
+      return Math.round(cost);
+    }
     
-    return Math.round(asset.size * (percentage / 100) * actionDetails.cost);
+    // Use provided asset size or find asset
+    let size = assetSize && !isNaN(parseFloat(assetSize)) ? parseFloat(assetSize) : 0;
+    if (!size && assetId) {
+      const asset = assets.find(a => a.id === assetId);
+      size = asset ? asset.size : 0;
+    }
+    
+    if (!size || !actionDetails || !percentage) return 0;
+    
+    let cost = size * (percentage / 100) * actionDetails.cost;
+    
+    // Apply adjustment factor if provided (as simple multiplier)
+    if (adjustmentFactor && !isNaN(parseFloat(adjustmentFactor))) {
+      cost = cost * parseFloat(adjustmentFactor);
+    }
+    
+    return Math.round(cost);
   };
 
   const getStatusIcon = (status) => {
@@ -214,7 +350,36 @@ const ProjectsActionsModule = () => {
     }
   };
 
-  const generateActionName = (actionType, assetId, nextDue, overrideDate, recurrence, regionOverride = null) => {
+  const generateActionName = (actionType, assetId, nextDue, overrideDate, recurrence, regionOverride = null, plannedAssetName = '', isCustomAction = false) => {
+    // Handle custom actions
+    if (isCustomAction && actionType) {
+      let name = actionType;
+      if (plannedAssetName) {
+        name += ` - ${plannedAssetName}`;
+      }
+      if (recurrence && (overrideDate || nextDue)) {
+        const date = new Date(overrideDate || nextDue);
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const month = monthNames[date.getMonth()];
+        const year = date.getFullYear();
+        name += ` - ${month} ${year}`;
+      }
+      return name;
+    }
+    
+    // Handle actions without assets
+    if (!assetId && plannedAssetName) {
+      let name = actionType ? `${actionType} - ${plannedAssetName}` : plannedAssetName;
+      if (recurrence && (overrideDate || nextDue)) {
+        const date = new Date(overrideDate || nextDue);
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const month = monthNames[date.getMonth()];
+        const year = date.getFullYear();
+        name += ` - ${month} ${year}`;
+      }
+      return name;
+    }
+    
     if (!actionType || !assetId) return '';
     
     // Find the asset to get the region, or use override for bulk actions
@@ -320,7 +485,11 @@ const ProjectsActionsModule = () => {
         startDate: project.startDate,
         endDate: project.endDate,
         team: project.team,
-        region: project.region
+        region: project.region,
+        fundingStatus: project.fundingStatus || 'Unfunded',
+        projectType: project.projectType || 'New Asset',
+        justification: project.justification || '',
+        budgetType: project.budgetType || 'Single Year'
       });
     } else {
       setEditingProject(null);
@@ -331,7 +500,11 @@ const ProjectsActionsModule = () => {
         startDate: '',
         endDate: '',
         team: '',
-        region: ''
+        region: '',
+        fundingStatus: 'Unfunded',
+        projectType: 'New Asset',
+        justification: '',
+        budgetType: 'Single Year'
       });
     }
     setShowProjectModal(true);
@@ -370,6 +543,10 @@ const ProjectsActionsModule = () => {
   const openActionModal = (action = null) => {
     if (action) {
       setEditingAction(action);
+      // Find the asset to populate asset value fields
+      const selectedAsset = assets.find(a => a.id === action.assetId);
+      const assetType = selectedAsset ? assetTypes[selectedAsset.type] : null;
+      
       setActionForm({
         assetId: action.assetId,
         actionPath: action.actionPath,
@@ -381,7 +558,16 @@ const ProjectsActionsModule = () => {
         overrideDate: action.overrideDate || '',
         assetPercentage: action.assetPercentage || 100,
         modeledCost: action.modeledCost || 0,
-        overrideCost: action.overrideCost || ''
+        overrideCost: action.overrideCost || '',
+        adjustmentFactor: '',
+        isCustomAction: false,
+        customActionName: '',
+        customActionCost: '',
+        assetSize: selectedAsset ? selectedAsset.size.toString() : '',
+        unitOfMeasure: assetType ? assetType.unit : '',
+        plannedAssetName: '',
+        directReplacementCost: selectedAsset ? selectedAsset['Direct Replacement Cost'] || '' : '',
+        serviceValue: selectedAsset ? selectedAsset['Service Value'] || '' : ''
       });
     } else {
       setEditingAction(null);
@@ -396,7 +582,16 @@ const ProjectsActionsModule = () => {
         overrideDate: '',
         assetPercentage: 100,
         modeledCost: 0,
-        overrideCost: ''
+        overrideCost: '',
+        adjustmentFactor: '',
+        isCustomAction: false,
+        customActionName: '',
+        customActionCost: '',
+        assetSize: '',
+        unitOfMeasure: '',
+        plannedAssetName: '',
+        directReplacementCost: '',
+        serviceValue: ''
       });
     }
     setAssetSearchTerm('');
@@ -442,13 +637,115 @@ const ProjectsActionsModule = () => {
     setPreviewAction(null);
   };
 
+  // Custom action management functions
+  const saveCustomAction = () => {
+    const newCustomAction = {
+      id: editingCustomAction ? editingCustomAction.id : Date.now(),
+      ...customActionForm,
+      cost: parseFloat(customActionForm.cost),
+      lifecycle: parseInt(customActionForm.lifecycle)
+    };
+
+    let updatedCustomActions;
+    if (editingCustomAction) {
+      updatedCustomActions = customActions.map(action => 
+        action.id === editingCustomAction.id ? newCustomAction : action
+      );
+    } else {
+      updatedCustomActions = [...customActions, newCustomAction];
+    }
+
+    setCustomActions(updatedCustomActions);
+    localStorage.setItem('customActions', JSON.stringify(updatedCustomActions));
+    
+    // Reset form
+    setCustomActionForm({
+      name: '',
+      description: '',
+      cost: '',
+      unit: 'Each',
+      lifecycle: '1',
+      category: 'Custom Actions'
+    });
+    setEditingCustomAction(null);
+    setShowCustomActionForm(false);
+  };
+
+  const deleteCustomAction = (actionId) => {
+    if (window.confirm('Are you sure you want to delete this custom action?')) {
+      const updatedCustomActions = customActions.filter(action => action.id !== actionId);
+      setCustomActions(updatedCustomActions);
+      localStorage.setItem('customActions', JSON.stringify(updatedCustomActions));
+    }
+  };
+
+  const openCustomActionForm = (action = null) => {
+    if (action) {
+      setEditingCustomAction(action);
+      setCustomActionForm({
+        name: action.name,
+        description: action.description,
+        cost: action.cost.toString(),
+        unit: action.unit,
+        lifecycle: action.lifecycle.toString(),
+        category: action.category
+      });
+    } else {
+      setEditingCustomAction(null);
+      setCustomActionForm({
+        name: '',
+        description: '',
+        cost: '',
+        unit: 'Each',
+        lifecycle: '1',
+        category: 'Custom Actions'
+      });
+    }
+    setShowCustomActionForm(true);
+  };
+
   // Update modeled cost when form changes
   useEffect(() => {
-    if (actionForm.assetId && actionForm.actionDetails && actionForm.assetPercentage) {
-      const modeledCost = calculateModeledCost(actionForm.assetId, actionForm.actionDetails, actionForm.assetPercentage);
-      setActionForm(prev => ({ ...prev, modeledCost }));
+    const modeledCost = calculateModeledCost(
+      actionForm.assetId, 
+      actionForm.actionDetails, 
+      actionForm.assetPercentage,
+      actionForm.adjustmentFactor,
+      actionForm.assetSize,
+      actionForm.customActionCost
+    );
+    setActionForm(prev => ({ ...prev, modeledCost }));
+  }, [actionForm.assetId, actionForm.actionDetails, actionForm.assetPercentage, actionForm.adjustmentFactor, actionForm.assetSize, actionForm.customActionCost, assets]);
+  
+  // Update asset size and unit when asset is selected
+  useEffect(() => {
+    if (actionForm.assetId && !actionForm.isCustomAction && assets.length > 0) {
+      const selectedAsset = assets.find(a => a.id === actionForm.assetId);
+      if (selectedAsset) {
+        console.log('Selected asset:', selectedAsset);
+        console.log('Direct Replacement Cost:', selectedAsset['Direct Replacement Cost']);
+        console.log('Service Value:', selectedAsset['Service Value']);
+        const assetType = assetTypes[selectedAsset.type];
+        
+        setActionForm(prev => ({
+          ...prev,
+          assetSize: selectedAsset.size.toString(),
+          unitOfMeasure: assetType ? assetType.unit : '',
+          directReplacementCost: selectedAsset['Direct Replacement Cost'] || '',
+          serviceValue: selectedAsset['Service Value'] || ''
+        }));
+      }
+    } else if (!actionForm.assetId) {
+      // Clear asset data when no asset is selected
+      setActionForm(prev => ({
+        ...prev,
+        assetSize: '',
+        unitOfMeasure: '',
+        directReplacementCost: '',
+        serviceValue: ''
+      }));
     }
-  }, [actionForm.assetId, actionForm.actionDetails, actionForm.assetPercentage, assets]);
+  }, [actionForm.assetId, actionForm.isCustomAction, assets, assetTypes]);
 
   const saveAction = () => {
     const actionName = generateActionName(
@@ -518,6 +815,8 @@ const ProjectsActionsModule = () => {
     };
 
     updatedProject.completion = calculateProjectCompletion(updatedProject);
+    updatedProject.totalDirectReplacementCost = calculateProjectDirectReplacementCost(updatedProject);
+    updatedProject.totalServiceValue = calculateProjectServiceValue(updatedProject);
 
     setSelectedProject(updatedProject);
     setProjects(prev => prev.map(p => p.id === selectedProject.id ? updatedProject : p));
@@ -549,6 +848,8 @@ const ProjectsActionsModule = () => {
     };
 
     updatedProject.completion = calculateProjectCompletion(updatedProject);
+    updatedProject.totalDirectReplacementCost = calculateProjectDirectReplacementCost(updatedProject);
+    updatedProject.totalServiceValue = calculateProjectServiceValue(updatedProject);
     
     setSelectedProject(updatedProject);
     setProjects(prev => prev.map(p => p.id === selectedProject.id ? updatedProject : p));
@@ -572,6 +873,8 @@ const ProjectsActionsModule = () => {
         };
 
         updatedProject.completion = calculateProjectCompletion(updatedProject);
+        updatedProject.totalDirectReplacementCost = calculateProjectDirectReplacementCost(updatedProject);
+        updatedProject.totalServiceValue = calculateProjectServiceValue(updatedProject);
         
         setSelectedProject(updatedProject);
         setProjects(prev => prev.map(p => p.id === selectedProject.id ? updatedProject : p));
@@ -662,6 +965,72 @@ const ProjectsActionsModule = () => {
           {/* Tree Explorer */}
           <div className="w-1/2 border-r overflow-y-auto p-6 max-h-full">
             <div className="space-y-1">
+              {/* Custom Actions Section */}
+              <div>
+                <div
+                  onClick={() => toggleNode('Custom Actions')}
+                  className="flex items-center py-2 px-2 hover:bg-gray-50 rounded cursor-pointer"
+                >
+                  {expandedNodes.has('Custom Actions') ? (
+                    <ChevronDown className="w-4 h-4 text-gray-500 mr-1" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-500 mr-1" />
+                  )}
+                  <FolderOpen className="w-4 h-4 text-purple-500 mr-2" />
+                  <span className="text-sm font-medium text-gray-900 break-words">Custom Actions</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openCustomActionForm();
+                    }}
+                    className="ml-auto p-1 text-purple-600 hover:bg-purple-100 rounded"
+                    title="Add Custom Action"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {expandedNodes.has('Custom Actions') && (
+                  <div className="ml-6 space-y-1">
+                    {customActions.map((action) => (
+                      <div
+                        key={action.id}
+                        onClick={() => previewActionFromTree(`Custom Actions > ${action.name}`, action, action.name)}
+                        className={`flex items-center py-2 px-2 hover:bg-blue-50 rounded cursor-pointer group ${
+                          previewAction?.name === action.name ? 'bg-blue-100' : ''
+                        }`}
+                      >
+                        <File className="w-4 h-4 text-purple-400 mr-2 ml-1" />
+                        <span className="text-sm text-gray-600 break-words flex-1">{action.name}</span>
+                        <div className="opacity-0 group-hover:opacity-100 flex gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openCustomActionForm(action);
+                            }}
+                            className="p-1 text-gray-500 hover:text-blue-600"
+                            title="Edit"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteCustomAction(action.id);
+                            }}
+                            className="p-1 text-gray-500 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Standard Cost Database Actions */}
               {Object.entries(costDatabase).map(([assetClass, assetTypesObj]) => (
                 <div key={assetClass}>
                   <div
@@ -916,13 +1285,18 @@ const ProjectsActionsModule = () => {
                   <td className="px-6 py-4 text-sm text-gray-900">{project.team}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => openProjectModal(project)}
-                        className="text-gray-600 hover:text-gray-800"
-                        title="Edit Project"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
+                      {!project.isRenewalsProject && (
+                        <button
+                          onClick={() => openProjectModal(project)}
+                          className="text-gray-600 hover:text-gray-800"
+                          title="Edit Project"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      {project.isRenewalsProject && (
+                        <span className="text-xs text-gray-500 italic">System Generated</span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1033,11 +1407,39 @@ const ProjectsActionsModule = () => {
                   <label className="block text-sm font-medium text-gray-500 mb-1">COMPLETION</label>
                   <p className="text-sm text-gray-900">{selectedProject?.completion}%</p>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">FUNDING STATUS</label>
+                  <p className="text-sm text-gray-900">{selectedProject?.fundingStatus || 'Unfunded'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">PROJECT TYPE</label>
+                  <p className="text-sm text-gray-900">{selectedProject?.projectType || 'New Asset'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">BUDGET TYPE</label>
+                  <p className="text-sm text-gray-900">{selectedProject?.budgetType || 'Single Year'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">TOTAL DIRECT REPLACEMENT COST</label>
+                  <p className="text-sm text-gray-900">${selectedProject?.totalDirectReplacementCost?.toLocaleString() || '0'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">TOTAL SERVICE VALUE</label>
+                  <p className="text-sm text-gray-900">${selectedProject?.totalServiceValue?.toLocaleString() || '0'}</p>
+                </div>
               </div>
+              
               <div className="mt-6">
                 <label className="block text-sm font-medium text-gray-500 mb-1">DESCRIPTION</label>
                 <p className="text-sm text-gray-900">{selectedProject?.description}</p>
               </div>
+
+              {selectedProject?.justification && (
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-500 mb-1">JUSTIFICATION</label>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedProject?.justification}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1282,25 +1684,29 @@ const ProjectsActionsModule = () => {
   const renderActionModal = () => {
     const filteredAssetsForAction = filteredAssets(assetSearchTerm);
     const selectedAsset = assets.find(a => a.id === actionForm.assetId);
-    const assetType = selectedAsset ? assetTypes[selectedAsset.type] : null;
     const previewName = generateActionName(
-      actionForm.actionPath.split(' > ').pop(), 
+      actionForm.isCustomAction ? actionForm.customActionName : actionForm.actionPath.split(' > ').pop(), 
       actionForm.assetId, 
       actionForm.nextDue, 
       actionForm.overrideDate, 
-      actionForm.recurrence
+      actionForm.recurrence,
+      null,
+      actionForm.plannedAssetName,
+      actionForm.isCustomAction
     );
     
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
           <h2 className="text-lg font-semibold mb-4">
             {editingAction ? 'Edit Action' : 'Add New Action'}
           </h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Asset</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {actionForm.assetId ? 'Asset' : 'Asset Name'}
+              </label>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Search className="w-4 h-4 text-gray-400" />
@@ -1333,7 +1739,7 @@ const ProjectsActionsModule = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Action *</label>
               <div className="space-y-2">
                 <button
                   type="button"
@@ -1350,9 +1756,81 @@ const ProjectsActionsModule = () => {
               </div>
             </div>
 
+            {!actionForm.assetId && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Planned Asset Name (For actions without existing assets)</label>
+                <input
+                  type="text"
+                  value={actionForm.plannedAssetName}
+                  onChange={(e) => setActionForm(prev => ({ ...prev, plannedAssetName: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., New Oak Tree - Location X"
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Next Due Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Asset Size {actionForm.assetId ? '(Auto-filled)' : '(Manual Entry)'}
+                </label>
+                <input
+                  type="number"
+                  value={actionForm.assetSize}
+                  onChange={(e) => setActionForm(prev => ({ ...prev, assetSize: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter asset size"
+                  disabled={!!actionForm.assetId && !actionForm.isCustomAction}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unit of Measure {actionForm.assetId ? '(Auto-filled)' : '(Manual Entry)'}
+                </label>
+                <input
+                  type="text"
+                  value={actionForm.unitOfMeasure}
+                  onChange={(e) => setActionForm(prev => ({ ...prev, unitOfMeasure: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., SM, Each, meters"
+                  disabled={!!actionForm.assetId && !actionForm.isCustomAction}
+                />
+              </div>
+            </div>
+
+            {/* Asset Value Fields - Only shown when asset is selected */}
+            {actionForm.assetId && (actionForm.directReplacementCost || actionForm.serviceValue) && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Direct Replacement Cost
+                  </label>
+                  <input
+                    type="text"
+                    value={actionForm.directReplacementCost}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                    readOnly
+                    placeholder="Not specified"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Service Value
+                  </label>
+                  <input
+                    type="text"
+                    value={actionForm.serviceValue}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                    readOnly
+                    placeholder="Not specified"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Next Due Date *</label>
                 <input
                   type="date"
                   value={actionForm.nextDue}
@@ -1408,19 +1886,35 @@ const ProjectsActionsModule = () => {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Asset Percentage</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={actionForm.assetPercentage}
-                onChange={(e) => setActionForm(prev => ({ ...prev, assetPercentage: parseInt(e.target.value) || 100 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter percentage (1-100)"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Percentage of asset size affected by this action
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Asset Percentage</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={actionForm.assetPercentage}
+                  onChange={(e) => setActionForm(prev => ({ ...prev, assetPercentage: parseInt(e.target.value) || 100 }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter percentage (1-100)"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Percentage of asset size affected by this action
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Factor (Multiplier)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={actionForm.adjustmentFactor}
+                  onChange={(e) => setActionForm(prev => ({ ...prev, adjustmentFactor: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., 1.1 for 10% increase"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Simple multiplier to adjust final cost (e.g., 1.2 = 20% increase)
+                </div>
               </div>
             </div>
 
@@ -1484,7 +1978,12 @@ const ProjectsActionsModule = () => {
             </button>
             <button
               onClick={saveAction}
-              disabled={!actionForm.assetId || !actionForm.actionPath || !actionForm.nextDue}
+              disabled={
+                !actionForm.nextDue ||
+                (actionForm.isCustomAction && !actionForm.customActionName) ||
+                (!actionForm.isCustomAction && !actionForm.actionPath) ||
+                (!actionForm.assetId && !actionForm.plannedAssetName)
+              }
               className="px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#5B6ACD' }}
             >
@@ -1508,13 +2007,22 @@ const ProjectsActionsModule = () => {
       nextDue: '',
       overrideDate: '',
       assetPercentage: 100,
-      overrideCost: ''
+      overrideCost: '',
+      adjustmentFactor: '',
+      isCustomAction: false,
+      customActionName: '',
+      customActionCost: ''
     });
     setShowBulkActionModal(true);
   };
 
   const saveBulkActions = () => {
-    if (!bulkActionForm.region || !bulkActionForm.assetType || !bulkActionForm.actionPath || !bulkActionForm.nextDue) {
+    const requiredFieldsValid = bulkActionForm.region && 
+                                bulkActionForm.assetType && 
+                                bulkActionForm.nextDue &&
+                                (bulkActionForm.isCustomAction ? bulkActionForm.customActionName : bulkActionForm.actionPath);
+    
+    if (!requiredFieldsValid) {
       alert('Please fill in all required fields');
       return;
     }
@@ -1536,20 +2044,34 @@ const ProjectsActionsModule = () => {
     // Create actions for all matching assets
     const newActions = [];
     matchingAssets.forEach(asset => {
-      const modeledCost = calculateModeledCost(asset.id, bulkActionForm.actionDetails, bulkActionForm.assetPercentage);
+      const actionDetails = bulkActionForm.isCustomAction ? 
+        { cost: parseFloat(bulkActionForm.customActionCost), unit: 'Each' } : 
+        bulkActionForm.actionDetails;
+      
+      const modeledCost = calculateModeledCost(
+        asset.id, 
+        actionDetails, 
+        bulkActionForm.assetPercentage,
+        bulkActionForm.adjustmentFactor,
+        asset.size.toString(),
+        bulkActionForm.isCustomAction ? bulkActionForm.customActionCost : ''
+      );
       const finalCost = bulkActionForm.overrideCost ? parseInt(bulkActionForm.overrideCost) : modeledCost;
       
       const baseAction = {
         id: Date.now() + Math.random(),
         name: generateActionName(
-          bulkActionForm.actionPath.split(' > ').pop(),
+          bulkActionForm.isCustomAction ? bulkActionForm.customActionName : bulkActionForm.actionPath.split(' > ').pop(),
           asset.id,
           bulkActionForm.nextDue,
           bulkActionForm.overrideDate,
-          bulkActionForm.recurrence
+          bulkActionForm.recurrence,
+          null,
+          '',
+          bulkActionForm.isCustomAction
         ),
         assetId: asset.id,
-        actionPath: bulkActionForm.actionPath,
+        actionPath: bulkActionForm.isCustomAction ? 'Custom Action' : bulkActionForm.actionPath,
         status: 'Open',
         nextDue: bulkActionForm.nextDue,
         overrideDate: bulkActionForm.overrideDate || null,
@@ -1557,6 +2079,12 @@ const ProjectsActionsModule = () => {
         recurrenceValue: bulkActionForm.recurrenceValue,
         recurrenceUnit: bulkActionForm.recurrenceUnit,
         assetPercentage: bulkActionForm.assetPercentage,
+        adjustmentFactor: bulkActionForm.adjustmentFactor ? parseFloat(bulkActionForm.adjustmentFactor) : null,
+        isCustomAction: bulkActionForm.isCustomAction,
+        customActionName: bulkActionForm.customActionName,
+        customActionCost: bulkActionForm.customActionCost ? parseFloat(bulkActionForm.customActionCost) : null,
+        assetSize: asset.size,
+        unitOfMeasure: assetTypes[asset.type]?.unit || 'Each',
         modeledCost,
         overrideCost: bulkActionForm.overrideCost ? parseInt(bulkActionForm.overrideCost) : null,
         cost: finalCost,
@@ -1617,7 +2145,7 @@ const ProjectsActionsModule = () => {
     const availableAssetTypes = getAssetTypesForRegion(bulkActionForm.region);
 
     const previewName = generateActionName(
-      bulkActionForm.actionPath.split(' > ').pop(),
+      bulkActionForm.isCustomAction ? bulkActionForm.customActionName : bulkActionForm.actionPath.split(' > ').pop(),
       'BULK',
       bulkActionForm.nextDue,
       bulkActionForm.overrideDate,
@@ -1634,7 +2162,7 @@ const ProjectsActionsModule = () => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
           <h2 className="text-lg font-semibold mb-4">Bulk Add Actions</h2>
           
           <div className="space-y-4">
@@ -1681,22 +2209,59 @@ const ProjectsActionsModule = () => {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Action *</label>
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setShowActionSelector(true)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left bg-white hover:bg-gray-50"
-                >
-                  {bulkActionForm.actionPath || 'Select action...'}
-                </button>
-                {bulkActionForm.actionDetails && (
-                  <div className="text-xs text-gray-600 p-2 bg-gray-50 rounded">
-                    {bulkActionForm.actionDetails.description} - ${bulkActionForm.actionDetails.cost}/{bulkActionForm.actionDetails.unit}
-                  </div>
-                )}
-              </div>
+              <label className="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  checked={bulkActionForm.isCustomAction}
+                  onChange={(e) => setBulkActionForm(prev => ({ ...prev, isCustomAction: e.target.checked, actionPath: '', actionDetails: null }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Use Custom Action</span>
+              </label>
             </div>
+
+            {!bulkActionForm.isCustomAction ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Action *</label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowActionSelector(true)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left bg-white hover:bg-gray-50"
+                  >
+                    {bulkActionForm.actionPath || 'Select action...'}
+                  </button>
+                  {bulkActionForm.actionDetails && (
+                    <div className="text-xs text-gray-600 p-2 bg-gray-50 rounded">
+                      {bulkActionForm.actionDetails.description} - ${bulkActionForm.actionDetails.cost}/{bulkActionForm.actionDetails.unit}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Custom Action Name *</label>
+                  <input
+                    type="text"
+                    value={bulkActionForm.customActionName}
+                    onChange={(e) => setBulkActionForm(prev => ({ ...prev, customActionName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter custom action name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Custom Action Cost *</label>
+                  <input
+                    type="number"
+                    value={bulkActionForm.customActionCost}
+                    onChange={(e) => setBulkActionForm(prev => ({ ...prev, customActionCost: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter custom cost"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1756,19 +2321,35 @@ const ProjectsActionsModule = () => {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Asset Percentage</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={bulkActionForm.assetPercentage}
-                onChange={(e) => setBulkActionForm(prev => ({ ...prev, assetPercentage: parseInt(e.target.value) || 100 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter percentage (1-100)"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Percentage of asset size affected by this action
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Asset Percentage</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={bulkActionForm.assetPercentage}
+                  onChange={(e) => setBulkActionForm(prev => ({ ...prev, assetPercentage: parseInt(e.target.value) || 100 }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter percentage (1-100)"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Percentage of asset size affected by this action
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Factor (Multiplier)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={bulkActionForm.adjustmentFactor}
+                  onChange={(e) => setBulkActionForm(prev => ({ ...prev, adjustmentFactor: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., 1.1 for 10% increase"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Simple multiplier to adjust final cost (e.g., 1.2 = 20% increase)
+                </div>
               </div>
             </div>
 
@@ -1808,7 +2389,13 @@ const ProjectsActionsModule = () => {
             </button>
             <button
               onClick={saveBulkActions}
-              disabled={!bulkActionForm.region || !bulkActionForm.assetType || !bulkActionForm.actionPath || !bulkActionForm.nextDue}
+              disabled={
+                !bulkActionForm.region ||
+                !bulkActionForm.assetType ||
+                !bulkActionForm.nextDue ||
+                (bulkActionForm.isCustomAction && !bulkActionForm.customActionName) ||
+                (!bulkActionForm.isCustomAction && !bulkActionForm.actionPath)
+              }
               className="px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#5B6ACD' }}
             >
@@ -1822,14 +2409,14 @@ const ProjectsActionsModule = () => {
 
   const renderProjectModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4">
           {editingProject ? 'Edit Project' : 'Add New Project'}
         </h2>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Project Name *</label>
             <input
               type="text"
               value={projectForm.name}
@@ -1867,7 +2454,7 @@ const ProjectsActionsModule = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Team</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Team *</label>
               <select
                 value={projectForm.team}
                 onChange={(e) => setProjectForm(prev => ({ ...prev, team: e.target.value }))}
@@ -1882,7 +2469,7 @@ const ProjectsActionsModule = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Region *</label>
             <select
               value={projectForm.region}
               onChange={(e) => setProjectForm(prev => ({ ...prev, region: e.target.value }))}
@@ -1893,6 +2480,57 @@ const ProjectsActionsModule = () => {
                 <option key={region} value={region}>{region}</option>
               ))}
             </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Funding Status *</label>
+              <select
+                value={projectForm.fundingStatus}
+                onChange={(e) => setProjectForm(prev => ({ ...prev, fundingStatus: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="Funded">Funded</option>
+                <option value="Unfunded">Unfunded</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Project Type *</label>
+              <select
+                value={projectForm.projectType}
+                onChange={(e) => setProjectForm(prev => ({ ...prev, projectType: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="Renewal/Replacement">Renewal/Replacement</option>
+                <option value="Upgrade">Upgrade</option>
+                <option value="New Asset">New Asset</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Budget Type *</label>
+            <select
+              value={projectForm.budgetType}
+              onChange={(e) => setProjectForm(prev => ({ ...prev, budgetType: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="Single Year">Single Year</option>
+              <option value="Multi Year">Multi Year</option>
+              <option value="Recurring">Recurring</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Justification</label>
+            <textarea
+              value={projectForm.justification}
+              onChange={(e) => setProjectForm(prev => ({ ...prev, justification: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={4}
+              placeholder="Enter project justification..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -1927,11 +2565,100 @@ const ProjectsActionsModule = () => {
           </button>
           <button
             onClick={saveProject}
-            disabled={!projectForm.name || !projectForm.team || !projectForm.region}
+            disabled={!projectForm.name || !projectForm.team || !projectForm.region || !projectForm.fundingStatus || !projectForm.projectType || !projectForm.budgetType}
             className="px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#5B6ACD' }}
           >
             {editingProject ? 'Update' : 'Create'} Project
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCustomActionForm = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold mb-4">
+          {editingCustomAction ? 'Edit Custom Action' : 'Add Custom Action'}
+        </h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Action Name *</label>
+            <input
+              type="text"
+              value={customActionForm.name}
+              onChange={(e) => setCustomActionForm(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter action name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={customActionForm.description}
+              onChange={(e) => setCustomActionForm(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={3}
+              placeholder="Enter description"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cost *</label>
+              <input
+                type="number"
+                value={customActionForm.cost}
+                onChange={(e) => setCustomActionForm(prev => ({ ...prev, cost: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter cost"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <select
+                value={customActionForm.unit}
+                onChange={(e) => setCustomActionForm(prev => ({ ...prev, unit: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="Each">Each</option>
+                <option value="SM">Square Meter</option>
+                <option value="Linear Meter">Linear Meter</option>
+                <option value="Hour">Hour</option>
+                <option value="Day">Day</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lifecycle (Years)</label>
+            <input
+              type="number"
+              value={customActionForm.lifecycle}
+              onChange={(e) => setCustomActionForm(prev => ({ ...prev, lifecycle: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter lifecycle in years"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={() => setShowCustomActionForm(false)}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={saveCustomAction}
+            disabled={!customActionForm.name || !customActionForm.cost}
+            className="px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: '#5B6ACD' }}
+          >
+            {editingCustomAction ? 'Update' : 'Save'} Action
           </button>
         </div>
       </div>
@@ -1973,6 +2700,7 @@ const ProjectsActionsModule = () => {
       {showBulkActionModal && renderBulkActionModal()}
       {showProjectModal && renderProjectModal()}
       {showActionSelector && renderActionSelector()}
+      {showCustomActionForm && renderCustomActionForm()}
     </div>
   );
 };
