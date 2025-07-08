@@ -2107,6 +2107,12 @@ const ProjectsActionsModule = () => {
           ...project,
           actions: [...project.actions, ...newActions]
         };
+        
+        // Calculate asset values for the updated project
+        updatedProject.completion = calculateProjectCompletion(updatedProject);
+        updatedProject.totalDirectReplacementCost = calculateProjectDirectReplacementCost(updatedProject);
+        updatedProject.totalServiceValue = calculateProjectServiceValue(updatedProject);
+        
         setSelectedProject(updatedProject);
         return updatedProject;
       }
