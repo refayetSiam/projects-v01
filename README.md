@@ -1,5 +1,3 @@
-# NOVION Natural Asset Management System
-
 A React-based web application for managing natural assets and capital planning.
 
 ## Features
